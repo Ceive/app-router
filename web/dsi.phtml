@@ -1,0 +1,34 @@
+<?php
+/**
+ * @created Alexey Kutuzov <lexus27.khv@gmail.com>
+ * @Project: php-router
+ */
+
+/**
+ * Data Structure Interface
+ */
+$a = <<<DSI
+pattern: {string}
+pattern_options{}
+params{}
+
+reference: <string|{}>
+
+rules[]
+	key:
+	expected:
+	mode: &strict | &stabilized
+	strict: boolean
+	stabilized: boolean
+	
+options{}
+DSI;
+
+$data_structure = [
+	'rules' => 1
+];
+
+/**
+ * Export from object state (object)
+ * Import
+ */
