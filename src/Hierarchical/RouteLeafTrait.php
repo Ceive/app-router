@@ -9,10 +9,6 @@ namespace Ceive\Routing\Hierarchical;
 
 
 use Ceive\Routing\Exception\Rendering\MissingParametersException;
-use Ceive\Routing\Matching;
-use Ceive\Routing\Route;
-use Ceive\Routing\Router;
-
 /**
  * @Author: Alexey Kutuzov <lexus27.khv@gmail.com>
  * Class RouteLeafTrait

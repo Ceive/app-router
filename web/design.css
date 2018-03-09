@@ -1,0 +1,30 @@
+section.router-view {
+    /* display: flex; */
+    /* flex-direction: row; */
+    /* justify-content: center; */
+    padding-left: 8000px;
+}
+
+.router-view-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+}
+
+.router-view-route {
+    /* display: flex; */
+    /* flex-direction: column; */
+    /* flex: 1; */
+    /* justify-content: center; */
+    /* flex-basis: 100%; */
+    padding: 5px;
+}
+
+.router-view-definition {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    padding: 10px;
+    /* flex: 1 0 100%; */
+    white-space: nowrap;
+}

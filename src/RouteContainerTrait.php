@@ -8,6 +8,7 @@
 namespace Ceive\Routing;
 
 
+use Ceive\Routing\Hierarchical\ParentAwareInterface;
 use Ceive\Routing\Route;
 use Ceive\Routing\RouteContainer;
 
@@ -109,5 +110,93 @@ trait RouteContainerTrait{
 		return $contains;
 	}
 	
+	public function query($query){
+		if(!is_array($query)){
+			$a = [];
+			if(preg_match_all('@([^\w\[\]\(\)]*)(\w+)?(?:\#(\w+))?(?:\.([\w]+))?(?:\:\:?(\w+)(?:(\(([^\)]+)\))?)?(\[[^\]]+\])*)?@', $query, $m)){
+				
+				foreach($m[0] as $i => $global){
+					
+					$a[] = [
+						'delimiter' => ($m[1][$i]?:null), // delimiter
+						'tag'       => ($m[2][$i]?:null), // tagname
+						'id'        => ($m[3][$i]?:null), // identifier
+						'class'     => ($m[4][$i]?:null), // class
+						'pseudo'    => ($m[5][$i]?[
+							'name'      => ($m[5][$i]?:null),
+							'arguments' => ($m[6][$i]?:null),
+						]:null),
+						'attributes' => ($m[7][$i]?:null)  // attributes
+					];
+					
+				}
+				
+			}
+			$query = $a;
+			unset($a);
+		}
+		
+		
+		$chunk = array_shift($query);
+		
+		
+		$delimiter = trim($chunk['delimiter']);
+		
+		$collection = [];
+		$checker = $this->checker($chunk);
+		if(!$delimiter){
+			$collection = $this->findBy($checker);
+		}else if($delimiter === '>'){
+			$collection = $this->findBy($checker,1);
+		}else if($delimiter === '~'){
+			$collection = [];
+			if($this instanceof ParentAwareInterface){
+				foreach($this->getParent()->getRoutes() as $r){
+					if($r !== $this){
+						if(call_user_func($checker, $r)){
+							$collection[] = $r;
+						}
+					}
+				}
+			}
+		}else if($delimiter === '+'){
+			$collection = [];
+			if($this instanceof ParentAwareInterface){
+				$c = false;
+				foreach($this->getParent()->getRoutes() as $r){
+					if($c){
+						if(call_user_func($checker, $r)){
+							$collection[] = $r;
+						}
+						$c = false;
+					}elseif($r === $this){
+						$c = true;
+					}
+				}
+			}
+		}
+		
+		if(!$query){
+			return $collection;
+		}
+		$a = [];
+		foreach($collection as $itm){
+			$a = array_merge($a, $itm->query($query));
+		}
+		return $a;
+	}
+	
+	/**
+	 * @param $query
+	 * @return \Closure
+	 */
+	protected function checker($query){
+		return function(Route $route) use($query){
+			if($route->getDefaultReference() === $query['class']){
+				return true;
+			}
+			return false;
+		};
+	}
 	
 }

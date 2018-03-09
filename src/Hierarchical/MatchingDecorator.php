@@ -83,6 +83,27 @@ class MatchingDecorator extends MatchingAbstract{
 	public function getWrapped(){
 		return $this->wrapped;
 	}
+	
+	public function getParent(){
+		return $this->getWrapped();
+	}
+	
+	/**
+	 * @return string
+	 */
+	public function getElapsedPath(){
+		$parent = null;
+		if($this->wrapped){
+			if($this->wrapped instanceof MatchingDecorator){
+				$parent = $this->wrapped->getElapsedPath();
+			}else{
+				$parent = $this->wrapped->getConformedPath();
+			}
+		}
+		
+		return $parent . $this->getConformedPath();
+	}
+	
 
 }
 

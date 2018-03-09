@@ -25,6 +25,9 @@ class MatchingReached extends MatchingDecorator{
 	/** @var  Matching[] */
 	protected $matching_chain = [];
 	
+	/** @var  string */
+	protected $elapsed_path;
+	
 	/**
 	 * MatchingReached constructor.
 	 * @param Matching $matching
@@ -52,7 +55,7 @@ class MatchingReached extends MatchingDecorator{
 	 */
 	public function getRootWrapped(){
 		if(!$this->root){
-			$this->root = $this->wrapped->getRootWrapped();
+			$this->root = parent::getRootWrapped();
 		}
 		return $this->root;
 	}
@@ -117,6 +120,8 @@ class MatchingReached extends MatchingDecorator{
 		$this->params = $params;
 		$this->options = $options;
 		
+		$this->getElapsedPath();
+		
 	}
 	
 	/**
@@ -132,11 +137,27 @@ class MatchingReached extends MatchingDecorator{
 		return $a;
 	}
 	
+	public function getElapsedPath(){
+		if($this->elapsed_path === null){
+			$this->elapsed_path = $this->getWrapped()->getElapsedPath();
+		}
+		return $this->elapsed_path;
+	}
+	
 	/**
-	 * @return array
+	 * @param bool $reverse
+	 * @return Matching[]
 	 */
-	public function way(){
-		return $this->matching_chain;
+	public function way($reverse = false){
+		return $reverse? array_reverse($this->matching_chain):$this->matching_chain;
+	}
+	
+	public function runtimeColumn($key){
+		$a = [];
+		foreach($this->way() as $matching){
+			$a[] = $matching->{$key};
+		}
+		return $a;
 	}
 	
 }

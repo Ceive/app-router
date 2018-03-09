@@ -31,7 +31,13 @@ interface Matching{
 	 * @return string
 	 */
 	public function getProposedPath();
-
+	
+	/**
+	 * Полный путь который привел к этому матчингу
+	 * @return mixed
+	 */
+	public function getElapsedPath();
+	
 	/**
 	 * @return mixed
 	 * Ссылка на действие
@@ -159,6 +165,31 @@ interface Matching{
 	 */
 	public function stabilizeRequestWith(array $data);
 	
+	public function reached();
+	
+	
+	public function __get($name);
+	public function __set($name, $value);
+	public function __isset($name);
+	public function __unset($name);
+	
+	/**
+	 * RuntimeParams : needs for carrier values per matching
+	 * @param array $params
+	 * @param bool $merge
+	 * @return $this
+	 */
+	public function setRuntimeParams(array $params, $merge = false);
+	
+	/**
+	 * @return array
+	 */
+	public function getRuntimeParams();
+	
+	public function getRuntime($paramKey);
+	public function setRuntime($paramKey, $value);
+	public function hasRuntime($paramKey);
+	public function removeRuntime($paramKey);
 	
 }
 

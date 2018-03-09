@@ -8,9 +8,7 @@ namespace Ceive\Routing;
 
 use Ceive\Routing\Exception\Matching\MissingException;
 use Ceive\Routing\Exception\Matching\SkipException;
-use Ceive\Routing\Exception\Matching\StabilizeException;
-use Ceive\Routing\Exception\Rendering\MissingParameterException;
-use Ceive\Routing\Exception\Rendering\MissingParametersException;
+use Ceive\Routing\Exception\Rendering\InvalidParametersException;
 use Ceive\Routing\Exception\RenderingException;
 
 /**
@@ -108,6 +106,7 @@ abstract class RouteAbstract implements Route{
 	 * @return Matching
 	 */
 	protected function _doMatch(Matching $matching){
+		$this->getRouter()->fireEvent('beforeMatch',[$this, $matching]);
 		$path = $matching->getProposedPath();
 		if( false !== $params = $this->_matchPath($path, $received)){
 			$matching->setConformed(true);
@@ -126,7 +125,19 @@ abstract class RouteAbstract implements Route{
 		$resolver = $this->getRouter()->getPatternResolver();
 		$params = $this->_prepareRenderParams($params);
 		$params = (array) $params;
-		return $resolver->patternRender($params, $this->pattern, $this->pattern_options);
+		$result = $resolver->patternRender($params, $this->pattern, $this->pattern_options);
+		$this->_checkRendered($result);
+		return $result;
+	}
+	
+	/**
+	 * @param $result
+	 * @throws InvalidParametersException
+	 */
+	protected function _checkRendered($result){
+		if($this->_matchPath($result)===false){
+			throw new InvalidParametersException('Check params please: '.implode($this->getPatternParams()));
+		}
 	}
 	
 	/**
@@ -199,38 +210,11 @@ abstract class RouteAbstract implements Route{
 		];
 		
 		$matching->setReference($this->reference);
-		$this->getRouter()->fireEvent('conformed', [$this, $matching]);
-		/*
-		
-		$pattern_params = $params = array_replace((array)$this->params, $matching->getParams());
-		$bindings = isset($this->options['objects'])?$this->options['objects']:[];
-		$delimiter = $this->getRouter()->getPatternResolver()->getPathDelimiter();
-		
-		if($delimiter){
-			foreach($this->getPatternParams() as $param_key_def){
-				$chunks = $this->_decompositePath($param_key_def, $delimiter);
-				$container_key = $chunks[0];
-				#Binding
-				if(isset($bindings[$container_key])){
-					$binding_rule = $bindings[$container_key];
-					$object_id = $params[$param_key_def];
-					$query_key = $this->_compositePath($chunks, $delimiter);
-					#Fetch
-					$object = $this->_fetchBinding($query_key,$object_id, $binding_rule, $pattern_params, $param_key_def);
-					#Check
-					$value = $this->_checkoutBinding($object, $pattern_params, $container_key, $param_key_def);
-					
-					$params[ $container_key ] = $value;
-					unset($params[$param_key_def], $value);
-				}
-			}
-		}
-		
-		$matching->setParams($params, true);*/
+		$this->getRouter()->fireEvent('conformed', [$matching, $this]);
 	}
 	
 	protected function _matchingFinish(Matching $matching){
-		$this->getRouter()->fireEvent('finish', [$this, $matching]);
+		$this->getRouter()->fireEvent('finish', [$matching, $this]);
 	}
 	
 	/**
@@ -240,85 +224,9 @@ abstract class RouteAbstract implements Route{
 	 * @throws RenderingException
 	 */
 	protected function _prepareRenderParams($params){
-		
-		$params = $this->getRouter()->fireEvent('prepareRenderParams', [$this, $params]);
-		$params = array_diff($params,[null,[],false,'']);
-		return call_user_func_array('array_replace', $params);
-		
-		// todo Попробовать локальное определение с перескоком на родительские цепочки
-		/*
-		
-		$errors = [];
-		foreach($meta as $paramKey => $alternativeBinding){
-			if(!isset($params[$paramKey])){
-				$errors[$paramKey] = $alternativeBinding;
-			}
-		}
-		if($errors){
-			$missing = [];
-			foreach($errors as $paramKey => $alternative){
-				$alternativeKey = $alternativeBinding = null;
-				if($alternative){
-					list($alternativeKey, $alternativeBinding) = $alternative;
-				}
-				$missing[] =  new MissingParameterException($paramKey, $alternativeKey, $alternativeBinding);
-			}
-			throw new MissingParametersException($missing);
-		}
-		return $params;*/
-		
-	}
-	
-	/**
-	 * @param $param
-	 * @param $path_delimiter
-	 * @return array
-	 */
-	protected function _decompositePath($param, $path_delimiter){
-		return explode($path_delimiter,$param);
-	}
-	
-	/**
-	 * @param $chunks @see _decompositePath
-	 * @param $path_delimiter - '/', '.' etc... @see PatternResolver::getPathDelimiter
-	 * @return string without first path element(without container)
-	 */
-	protected function _compositePath($chunks, $path_delimiter){
-		array_shift($chunks);
-		return implode($path_delimiter, $chunks);
-	}
-	
-	/**
-	 * Выдача связанного объекта (Проверка и т.п)
-	 * @param object $object
-	 * @param array $pattern_params
-	 * @param $container_key
-	 * @param $param_key_def
-	 * @return object
-	 * @throws MissingException|SkipException
-	 */
-	protected function _checkoutBinding($object,array $pattern_params, $container_key, $param_key_def){
-		if(!$object){
-			if(isset($this->options['static']) && $this->options['static']){
-				throw new MissingException();
-			}else{
-				throw new SkipException();
-			}
-		}
-		return $object;
-	}
-	
-	/**
-	 * Обрабатывает метаданные связывания, и берет нужный объект из бд
-	 * @param $field_path
-	 * @param $field_value
-	 * @param $binding_rule
-	 * @param array $pattern_params
-	 * @param null $full_path
-	 * @return null
-	 */
-	protected function _fetchBinding($field_path, $field_value, $binding_rule, $pattern_params = [], $full_path = null){
-		return $this->getRouter()->getBindingAdapter()->load($field_path, $field_value, $binding_rule, $pattern_params, $full_path);
+		$collection = $this->getRouter()->fireEvent('prepareRenderParams', [$this, $params]);
+		$collection = array_diff($collection,[null,false,'']);
+		return call_user_func_array('array_replace', $collection);
 	}
 	
 	/**
@@ -327,14 +235,15 @@ abstract class RouteAbstract implements Route{
 	 * @param Matching $matching
 	 */
 	protected function _checkEnv(Matching $matching){
-		
+		$this->getRouter()->fireEvent('checkEnv',[$matching, $this]);
 	}
 	
 	/**
 	 * @param Matching $matching
 	 */
 	protected function _matchingReached(Matching $matching){
-		$this->getRouter()->fireEvent('reached', [$this, $matching]);
+		$matching->reached();
+		//$this->getRouter()->fireEvent('reached', [$this, $matching]);
 	}
 	
 	

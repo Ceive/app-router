@@ -73,9 +73,18 @@ interface Router extends Matchable{
 	/**
 	 * @param $name
 	 * @param array $arguments
+	 * @param bool $stoppable
 	 * @return mixed
 	 */
-	public function fireEvent($name, array $arguments);
+	public function fireEvent($name, array $arguments, $stoppable = false);
+	
+	/**
+	 * @param $name
+	 * @param array $arguments
+	 * @param bool $modeSingle
+	 * @return array|mixed
+	 */
+	public function fireCollector($name, array $arguments, $modeSingle = false);
 	
 	/**
 	 * @param $method
@@ -84,7 +93,7 @@ interface Router extends Matchable{
 	 * @return mixed
 	 * @internal param $this
 	 */
-	public function extra($method, Matching $matching, array $arguments);
+	public function method($method, Matching $matching, array $arguments);
 	
 }
 

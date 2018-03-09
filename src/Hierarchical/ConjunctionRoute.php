@@ -6,6 +6,7 @@
 
 namespace Ceive\Routing\Hierarchical;
 
+use Ceive\Routing\Exception\Matching\MissingException;
 use Ceive\Routing\Exception\Matching\SkipException;
 use Ceive\Routing\Matching;
 use Ceive\Routing\Route;
@@ -43,17 +44,20 @@ class ConjunctionRoute extends RouteAbstract implements ParentAwareInterface, Ro
 	/**
 	 * @param Matching $matching
 	 * @return Matching
-	 * @throws RoutingException
+	 * @throws \Exception
 	 */
 	public function match(Matching $matching){
-
+		
+		
 		$this->_doMatch($matching);
 
 		if(!$matching->isConformed()){
 			$matching->reset();
 			return $matching;
 		}
-
+		
+		$this->_checkEnv($matching);
+		
 		if($matching->isReached() || !$this->routes){
 			
 			if($this->is_symbolic){
@@ -70,26 +74,46 @@ class ConjunctionRoute extends RouteAbstract implements ParentAwareInterface, Ro
 		
 		$result = null;
 		$decorator = $this->decorateMatching($matching);
-
-		foreach($this->routes as $route){
-			try{
-				$result = $route->match($decorator);
-				if($result->isConformed()){
-					
-					break;
+		try{
+			foreach($this->routes as $route){
+				try{
+					try{
+						$result = $route->match($decorator);
+						if($result->isConformed()){
+							break;
+						}
+						$result = null;
+					}catch(\Exception $e){
+						if(!$this->_catchException($e, $route, $decorator)){
+							throw $e;
+						}
+					}
+				}catch (SkipException $e){
+					$this->_catchSkip($e, $route, $decorator);
 				}
-				$result = null;
-			}catch (SkipException $e){}
+			}
+			if(!$result && !$decorator->isReached()){
+				$missing = new MissingException();
+				$missing->route = $this;
+				$missing->matching = $decorator;
+				throw $missing;
+			}
+		}catch(MissingException $missing){
+			$result = $this->_catchMissing($missing);
 		}
 		
 		if($decorator->isReached() || ($result instanceof MatchingDecorator && $result->isReached())){
+			
+			$result = $result?$result:$decorator;
+			
 			//$result->apply();// Вызывается для декоратора
-			//$this->_matchingReached($result);
+			
 			$this->_matchingFinish($result);
-			return $result?$result:$decorator;
+			return $result;
 		}
 		
-		$matching->setConformed(false);
+		
+		
 		$matching->reset();
 		return $matching;
 		
@@ -108,13 +132,6 @@ class ConjunctionRoute extends RouteAbstract implements ParentAwareInterface, Ro
 			$matched_received = null;
 		}
 		return $data;
-	}
-	
-	/**
-	 * @param Matching $matching
-	 */
-	protected function _checkEnv(Matching $matching){
-		
 	}
 	
 	/**
@@ -290,6 +307,45 @@ class ConjunctionRoute extends RouteAbstract implements ParentAwareInterface, Ro
 	protected function _render($params = null){
 		return parent::render($params);
 	}
+	
+	/**
+	 * @param MatchingDecorator|Matching $matching
+	 * @return Route|null
+	 */
+	protected function _notFoundChild(MatchingDecorator $matching){
+		return $this->getRouter()->fireCollector('notFoundChild', [$matching, $this], true);
+		
+	}
+	
+	/**
+	 * @param SkipException $e
+	 * @param Route $route
+	 * @param MatchingDecorator|Matching $matching
+	 */
+	protected function _catchSkip(SkipException $e, Route $route, MatchingDecorator $matching){
+		$this->getRouter()->fireEvent('catchSkip', [$matching, $route, $this, $e]);
+	}
+	
+	/**
+	 * @param $missing
+	 * @return array|mixed
+	 */
+	protected function _catchMissing($missing){
+		return $this->getRouter()->fireCollector('catchMissing', [$missing, $this], true);
+	}
+	
+	/**
+	 * @param \Exception $e
+	 * @param Route $route
+	 * @param MatchingDecorator $matching
+	 * @return bool catched
+	 */
+	protected function _catchException(\Exception $e, Route $route, MatchingDecorator $matching){
+		$results = $this->getRouter()->fireEvent('catchException', [$matching, $route, $this, $e]);
+		return in_array(true, $results, true);
+	}
+	
+	
 	
 }
 

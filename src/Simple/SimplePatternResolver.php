@@ -124,6 +124,11 @@ class SimplePatternResolver implements PatternResolver{
 		return $this->path_delimiter;
 	}
 	
+	public function isEmbeddedPaths(){
+		return !!$this->getPathDelimiter();
+	}
+	
+	
 	/**
 	 * @param $path
 	 * @return array

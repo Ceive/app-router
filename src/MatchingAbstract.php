@@ -6,6 +6,7 @@
 
 namespace Ceive\Routing;
 use Ceive\Routing\Exception\Matching\SkipException;
+use Ceive\Routing\Hierarchical\MatchingReached;
 
 
 /**
@@ -15,6 +16,14 @@ use Ceive\Routing\Exception\Matching\SkipException;
  *
  * @ProposedPath Путь который предлагается для вычисления
  * @ConformedPath Путь, который достигнут (Это окончательный путь)
+ *
+ * @property mixed $proposedPath
+ * @property mixed $conformedPath
+ * @property mixed $params
+ * @property mixed $reference
+ * @property mixed $path
+ * @property mixed $route
+ *
  *
  */
 abstract class MatchingAbstract implements Matching{
@@ -42,6 +51,8 @@ abstract class MatchingAbstract implements Matching{
 	/** @var  string|null */
 	protected $proposed_path;
 	
+	/** @var array  */
+	protected $runtime_params = [];
 
 	/**
 	 * @return mixed
@@ -244,10 +255,85 @@ abstract class MatchingAbstract implements Matching{
 	 * @param $arguments
 	 * @return mixed
 	 */
-	public function __call($method, $arguments){
-		return $this->getRoute()->getRouter()->extra($method, $this, $arguments);
+	public function __call($method, array $arguments = []){
+		return $this->getRoute()->getRouter()->method($method, $this, $arguments);
 	}
 	
+	
+	public function reached(){
+		$this->getRoute()->getRouter()->fireEvent('reached', [$this, $this->getRoute()]);
+	}
+	
+	public function __get($name){
+		
+		$result = $this->getRuntime($name);
+		
+		if($result !== null){
+			return $result;
+		}
+		
+		switch($name){
+			case 'proposedPath':  return $this->getProposedPath(); break;
+			case 'conformedPath': return $this->getConformedPath(); break;
+			case 'elapsedPath':   return $this->getElapsedPath(); break;
+			case 'params':        return $this->getParams(); break;
+			case 'reference':     return $this->getReference(); break;
+			case 'path':          return $this->getPath(); break;
+			case 'route':         return $this->getRoute(); break;
+		}
+		
+		return null;
+	}
+	
+	public function __set($name, $value){
+		$this->setRuntime($name, $value);
+	}
+	
+	public function __isset($name){
+		return $this->hasRuntime($name);
+	}
+	
+	public function __unset($name){
+		$this->removeRuntime($name);
+	}
+	
+	/**
+	 * @return string
+	 */
+	public function getElapsedPath(){
+		return $this->getConformedPath();
+	}
+	
+	public function setRuntimeParams(array $params, $merge = false){
+		$this->runtime_params = $merge?array_replace($this->runtime_params, $params):$params;
+		return $this;
+	}
+	
+	public function getRuntimeParams(){
+		return $this->runtime_params;
+	}
+	
+	
+	public function getRuntime($paramKey){
+		if(isset($this->runtime_params[$paramKey])){
+			return $this->runtime_params[$paramKey];
+		}
+		return null;
+	}
+	
+	public function setRuntime($paramKey, $value){
+		$this->runtime_params[$paramKey] = $value;
+		return $this;
+	}
+	
+	public function hasRuntime($paramKey){
+		return isset($this->runtime_params[$paramKey]);
+	}
+	
+	public function removeRuntime($paramKey){
+		unset($this->runtime_params[$paramKey]);
+		return $this;
+	}
+	
+	
 }
-
-

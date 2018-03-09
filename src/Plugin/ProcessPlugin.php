@@ -33,12 +33,33 @@ class ProcessPlugin{
 	public function onReached(Matching $matching, Route $route){
 		$this->matching = new MatchingReached($matching);
 		$this->route = $route;
-		$onSuccess = $route->{'on success'};
 		try{
-			
+			$this->process();
 		}catch(SkipException $e){
 			throw $e;
 		}
+		
+	}
+	
+	/**
+	 * @param Matching $matching
+	 * @param Route $route
+	 * @return mixed
+	 * @throws SkipException
+	 */
+	public function onConformed(Matching $matching, Route $route){
+		$onConformed = $route->{'on conformed'};
+		try{
+			if(isset($route->{'on conformed'}) && is_callable($route->{'on conformed'})){
+				return call_user_func($route->{'on conformed'}, $matching, $route);
+			}
+		}catch(SkipException $e){
+			throw $e;
+		}
+		
+	}
+	
+	public function process(){
 		
 	}
 	

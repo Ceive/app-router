@@ -1,0 +1,20 @@
+<?php 
+ /**
+ * Template File
+ * Project: ceive.app-router
+ * Author: Alexey Kytuzov <lexus27.khv@gmai.com>
+ * @var string $content
+ * @var bool $break
+  * @var \Ceive\Routing\Method\Layout $layout
+  * @var \Ceive\Routing\Method\Layout\Processing $this
+ **/
+ $layout->break = true;
+ ?>
+
+
+<h1>Note <?=$this->params['note']->id?></h1>
+
+
+
+
+<?$this->inc('index',null, '<i>9000</i>')?>

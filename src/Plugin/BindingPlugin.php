@@ -9,20 +9,36 @@ namespace Ceive\Routing\Plugin;
 
 use Ceive\Routing\Exception\Matching\MissingException;
 use Ceive\Routing\Exception\Matching\SkipException;
+use Ceive\Routing\Exception\MatchingException;
 use Ceive\Routing\Exception\Rendering\MissingParameterException;
 use Ceive\Routing\Exception\Rendering\MissingParametersException;
+use Ceive\Routing\Hierarchical\ConjunctionRoute;
 use Ceive\Routing\Matching;
 use Ceive\Routing\Route;
+use Ceive\Routing\Router;
 
 /**
  * @Author: Alexey Kutuzov <lexus27.khv@gmail.com>
  * Class BindingPlugin
  * @package Ceive\Routing\Tests
+ *
+ * @listener onBegin($matching);
+ * @listener onConformed($matching, $route);
+ * @listener onReached($matching, $route);
+ * @listener onFinish($matching, $route);
+ * @listener onPrepareRenderParams($route, $params);
+ * @listener onCheckEnv($matching, $route);
+ *
  */
 class BindingPlugin{
 	
 	/** @var  Route\BindingAdapter */
 	protected $binding_adapter;
+	/** @var  Route\PatternResolver */
+	protected $pattern_resolver;
+	
+	/** @var  Router */
+	protected $router;
 	
 	/** @var  Route */
 	protected $route;
@@ -30,43 +46,58 @@ class BindingPlugin{
 	/** @var  Matching */
 	protected $matching;
 	
+	public function setRouter(Router $router){
+		if($this->router !== $router){
+			$this->_setRouter($router);
+		}
+	}
+	
+	protected function _setRouter(Router $router){
+		$this->router = $router;
+		$this->binding_adapter = $router->getBindingAdapter();
+		$this->pattern_resolver = $router->getPatternResolver();
+	}
+	
 	/**
 	 * @param Matching $matching
 	 * @param Route $route
+	 * @throws MatchingException
 	 */
 	public function onConformed(Matching $matching, Route $route){
-		$this->binding_adapter = $route->getRouter()->getBindingAdapter();
-		$resolver = $route->getRouter()->getPatternResolver();
 		
-		$pattern_params = $params = array_replace(
-			(array)$route->getDefaultParams(),
-			$matching->getParams()
-		);
+		$patternParams = $params = array_replace((array)$route->getDefaultParams(), $matching->getParams());
 		
 		$bindings = $route->objects?:[];
-		$delimiter = $resolver->getPathDelimiter();
-		if($delimiter){
+		
+		if($this->pattern_resolver->isEmbeddedPaths()){
 			foreach($route->getPatternParams() as $placeholder){
-				$chunks = $resolver->explode($placeholder);
-				$container_key = array_shift($chunks);
+				$chunks = $this->pattern_resolver->explode($placeholder);
+				$containerKey = array_shift($chunks);
 				#Binding
-				if(isset($bindings[$container_key])){
-					$binding_rule = $bindings[$container_key];
-					$object_id = $pattern_params[$placeholder];
+				if(isset($bindings[$containerKey])){
+					$bindingRule = $bindings[$containerKey];
+					$objectId = $patternParams[$placeholder];
 					
-					$query_key = $resolver->join($chunks);
-					#Fetch
-					$object = $this->binding_adapter->load($query_key,$object_id, $binding_rule, $pattern_params, $placeholder);
-					#Check
-					$value = $this->_checkout($object, $pattern_params, $container_key, $placeholder);
+					$relativePath = $this->pattern_resolver->join($chunks);
+					try{
+						#Fetch
+						$object = $this->binding_adapter->load($relativePath,$objectId, $bindingRule, $patternParams, $placeholder);
+						#Check
+						$value = $this->_checkout($object, $patternParams, $containerKey, $placeholder);
+					}catch(MatchingException $e){
+						$e->matching = $matching;
+						$e->route = $route;
+						throw $e;
+					}
 					
-					$params[ $container_key ] = $value;
-					unset($params[$placeholder], $value);
+					$params[ $containerKey ] = $value;
+					unset($params[$placeholder], $value); // TODO: unset old used patternParam from $params
 				}
 			}
 		}
 		
 		$matching->setParams($params, true);
+		$matching->setOptions($route->getOptions(), true); // TODO: options
 	}
 	
 	/**
@@ -90,22 +121,6 @@ class BindingPlugin{
 	}
 	
 	/**
-	 * @param Matching $matching
-	 * @param Route $route
-	 */
-	public function onReached(Matching $matching, Route $route){
-		$a = [];
-	}
-	
-	/**
-	 * @param Matching $matching
-	 * @param Route $route
-	 */
-	public function onFinish(Matching $matching, Route $route){
-		$a = [];
-	}
-	
-	/**
 	 * @param $params
 	 * @param Route $route
 	 * @return mixed
@@ -114,17 +129,16 @@ class BindingPlugin{
 	public function onPrepareRenderParams(Route $route, $params){
 		$this->route = $route;
 		$router = $route->getRouter();
-		$resolver = $router->getPatternResolver();
 		$binder = $router->getBindingAdapter();
 		
 		$params = (array)$params;
-		$placeholders = $resolver->patternPlaceholders($route->getPattern());
+		$placeholders = $this->pattern_resolver->patternPlaceholders($route->getPattern());
 		$pattern_params = array_intersect_key($params, array_fill_keys($placeholders, null));
 		
 		$bindings = $route->objects?:[];
 		$meta = [];
 		foreach($placeholders as $param_key_def){
-			$chunks = $resolver->explode($param_key_def);
+			$chunks = $this->pattern_resolver->explode($param_key_def);
 			$container_key = $chunks[0];
 			if(isset($bindings[$container_key])){
 				$binding_rule = $bindings[$container_key];
@@ -139,7 +153,7 @@ class BindingPlugin{
 					
 				}
 			}else{
-				$meta[$param_key_def]=null;
+				$meta[$param_key_def] = null;
 			}
 		}
 		
@@ -156,12 +170,31 @@ class BindingPlugin{
 				if($alternative){
 					list($alternativeKey, $alternativeBinding) = $alternative;
 				}
-				$missing[] =  new MissingParameterException($paramKey, $alternativeKey, $alternativeBinding);
+				$missing[] = new MissingParameterException($paramKey, $alternativeKey, $alternativeBinding);
 			}
 			throw new MissingParametersException($missing);
 		}
 		
 		return $params;
+	}
+	
+	/**
+	 * @param Matching $matching
+	 * @param Route $route
+	 * @param ConjunctionRoute $conjunctionRoute
+	 * @param \Exception $exception
+	 * @return bool|null - catched
+	 */
+	public function onCatchException(Matching $matching, Route $route, ConjunctionRoute $conjunctionRoute, \Exception $exception){
+		
+		if($exception instanceof MissingException){
+			
+			
+			
+			//return true;
+		}
+		
+		return false;
 	}
 }
 

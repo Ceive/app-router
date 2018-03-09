@@ -108,6 +108,7 @@ interface Route extends Matchable{
 	public function __set($name, $value);
 	public function __isset($name);
 	public function __unset($name);
+	
 }
 
 

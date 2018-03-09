@@ -67,6 +67,11 @@ interface PatternResolver{
 	public function explode($path);
 	
 	/**
+	 * @return mixed
+	 */
+	public function isEmbeddedPaths();
+	
+	/**
 	 * @param $path
 	 * @return string
 	 */

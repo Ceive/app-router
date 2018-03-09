@@ -49,6 +49,8 @@ $route = [
 					'title' => 'Создание статьи',
 					'pagetitle' => 'Создать статью / {&parent}',
 					'menutitle' => 'Создать статью',
+					'wrapChild' => true,
+					'wrapRoot'  => true,
 				]
 			],[
 				'pattern' => '/{article.id}',

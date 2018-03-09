@@ -10,6 +10,7 @@ namespace Ceive\Routing\Tests;
 use Ceive\Routing\FactoryDirector;
 use Ceive\Routing\Hierarchical\ConjunctionFactory;
 use Ceive\Routing\Hierarchical\ConjunctionRoute;
+use Ceive\Routing\Plugin\BindingPlugin;
 use Ceive\Routing\Route\MyBindingAdapter;
 use Ceive\Routing\Router;
 use Ceive\Routing\RouterAbstract;
@@ -47,6 +48,8 @@ class Base extends \PHPUnit_Framework_TestCase{
 		$binding_adapter = new MyBindingAdapter();
 		
 		$this->router->setBindingAdapter($binding_adapter);
+		$this->router->addPlugin(new BindingPlugin());
+		
 		$this->factory = new FactoryDirector($this->router);
 		
 		$this->factory->setFactory(new ConjunctionFactory(),ConjunctionRoute::class);

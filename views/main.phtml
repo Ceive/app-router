@@ -1,0 +1,36 @@
+<?php
+/**
+ * Template File
+ * Project: ceive.app-router
+ * Author: Alexey Kytuzov <lexus27.khv@gmai.com>
+ * @var \Ceive\Routing\Method\Layout\Processing $this
+ * @var \Ceive\Routing\Method\Layout $layout
+ * @var string $content
+ * @var bool $break
+ **/
+/** @var \Ceive\Routing\Method\Location $location */
+$location = $layout->reached->location();
+?>
+<html>
+<head>
+	<title><?=$location->getTitle()?></title>
+	<base href="/"/>
+</head>
+<body>
+<?
+$breadcrumbs = [];
+$way = $location->way();
+$last = count($way)-1;
+foreach($way as $i => $loc){
+	$breadcrumbs[] = '<a style="font-weight:'.($i<$last?'100':'600').'" href="'.$loc->getLink().'" title="'.$loc->getTitle().'">' . $loc->getBreadcrumb() . '</a>';
+}
+$breadcrumbs = implode(' / ', $breadcrumbs);
+?>
+<div>
+	<?=$breadcrumbs?>
+</div>
+<div>
+	<?=$this->content?>
+</div>
+</body>
+</html>

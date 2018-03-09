@@ -10,8 +10,12 @@ include '../vendor/autoload.php';
 
 use Ceive\Routing\Hierarchical\ConjunctionFactory;
 use Ceive\Routing\Hierarchical\ConjunctionRoute;
-use Ceive\Routing\Hierarchical\MatchingDecorator;
-use Ceive\Routing\Route\BindingAdapter;
+use Ceive\Routing\Method\LayoutMethod;
+use Ceive\Routing\Method\LocationMethod;
+use Ceive\Routing\Plugin\BindingPlugin;
+use Ceive\Routing\Plugin\NotFoundPlugin;
+use Ceive\Routing\Plugin\PathModifierPlugin;
+use Ceive\Routing\Plugin\ProcessPlugin;
 use Ceive\Routing\Route\MyBindingAdapter;
 use Ceive\Routing\Simple\SimpleMatching;
 use Ceive\Routing\Simple\SimplePatternResolver;
@@ -22,7 +26,29 @@ use Ceive\Routing\Simple\SimpleRouter;
 $resolver   = new SimplePatternResolver();
 $resolver->setPathDelimiter('__');
 
-$router     = new SimpleRouter($resolver);
+$router = new SimpleRouter($resolver);
+
+class MyProcess extends ProcessPlugin{
+	
+	public function process(){
+		$way = $this->matching->way();
+		$layout = $this->matching->layout();
+		
+		echo $layout->render();
+	}
+	
+}
+
+$router->addPlugin(new MyProcess());
+$router->addPlugin(new BindingPlugin());
+$router->addPlugin(new PathModifierPlugin());
+$router->addPlugin(new NotFoundPlugin());
+$router->setMethod('location',new LocationMethod(), true );
+
+$baseDir = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'views';
+
+$router->setMethod('layout',new LayoutMethod($baseDir,'main'));
+
 
 $router->setBindingAdapter(new MyBindingAdapter());
 
@@ -32,108 +58,145 @@ $director->setFactory(new ConjunctionFactory(),ConjunctionRoute::class);
 $director->setFactory(new SimpleRouteFactory(),SimpleRoute::class);
 $director->setDefault(SimpleRoute::class);
 
-/*
-// Не забыть: В данный момент матч может возвращять иной объект Matching , в связи с необходимостью проведения живой совпавшей цепи для реализации Locations в будущем
-$route = (new ConjunctionRoute('user:list','/users'))
-	->setRouter($router)
-	->addRoute(
-		(new SimpleRoute('user:create','/create'))->setRouter($router)
-	)
-	->addRoute(
-		(new ConjunctionRoute('user:view','/(?<uid>\d+)')) // matched destination on '/users/91'
-		->setRouter($router)
-			->addRoute( (new SimpleRoute('user:update', '/update'))->setRouter($router) )
-			->addRoute( (new SimpleRoute('user:delete', '/delete'))->setRouter($router) )
-			->addRoute(
-				(new ConjunctionRoute('user:note:list','/notes'))
-					->setRouter($router)
-					->addRoute(
-						(new ConjunctionRoute('user:note:view','/(?<note_id>\d+)'))
-							->setRouter($router)
-							->addRoute( (new SimpleRoute('user:note:update', '/update'))->setRouter($router) )
-							->addRoute( (new SimpleRoute('user:note:delete', '/delete'))->setRouter($router) )
-					)
-					->addRoute(
-						(new SimpleRoute('user:note:add', '/add'))->setRouter($router)
-					)
-					->addRoute(
-						(new SimpleRoute('user:note:delete', '/delete'))->setRouter($router)
-					)
-			)
-	)->addRoute(
-		(new SimpleRoute('user:bo','/(?<babi>\d+)/ba'))->setRouter($router)
-	);
-*/
+$fn = [
+	'clearExtraSlashes' => function(Route $route, Matching $matching){
+		$pp = $matching->getProposedPath();
+		
+		$pp = rtrim($pp,"\\/");
+		
+		//if($pp === '/') $pp = '';
+		//else $pp = rtrim($pp,"\\/");
+		
+		$matching->setProposedPath($pp);
+	}
+];
+
 $route = $director->createRoute([
-	'pattern' => '/users',
-	'action' => 'user:list',
-	'rules' => [[
-		'http.method' => 'get',
-	]],
-	'type' => ConjunctionRoute::class,
+	'pattern' 	=> '',
+	'type' 		=> ConjunctionRoute::class,
+	'location' 	=> [
+		'title' => 'Главная',
+	],
+	'onBeforeMatch' => $fn['clearExtraSlashes'],
 	'children' => [
 		[
-			'pattern'   => '/(?<babi>\d+)/ba',
-			'action'    => 'user:bo',
-		], [
-			'pattern'   => '/create',
-			'action'    => 'user:create',
-			'form'      => [
-				'source' => 'http.post'
-			]
-		],[
-			'pattern'   => '/(?<user__id>\d+)',
-			'action'    => '#user.view',
-			'type'      => ConjunctionRoute::class,
-			'static'    => true,// если в базе данных не будет объекта с айди user__id то произойдет выброс 404
-			'rules'     => [
-				'http.method' => 'get'
+			'pattern' => '/users',
+			'action' => 'user:list',
+			'rules' => [[
+				'http.method' => 'get',
+			]],
+			'location' => [
+				'title' => 'Пользователи',
 			],
-			'output'    => [ 'json', 'html' ],
-			'objects'   => [
-				'user' => 'UserClass'
+			'view' => [
+				'layout' => 'routes/site',
+				'template' => 'routes/site'
 			],
-			'children'  => [
-				[
-					'pattern'   => '/update',
-					'action'    => 'user:update',
-					'form'      => [ 'source' => 'http.post' ]
-				], [
-					'pattern'   => '/delete',
-					'action'    => 'user:delete',
-				], [
-					'pattern'   => '/notes',
-					'action'    => 'user:note:list',
-					'type'      => ConjunctionRoute::class,
-					'children'  => [
-						[
-							'pattern' => '/(?<note__id>\d+)',
-							'action' => 'user:note:read',
-							'type' => ConjunctionRoute::class,
-							'children' => [
-								[
-									'pattern' => '/update',
-									'action' => 'user:note:update',
-								], [
-									'pattern' => '/delete',
-									'action' => 'user:note:delete',
-								]
-							],
-						], [
-							'pattern' => '/create',
-							'action' => 'user:note:create',
-						]
-					],
+			'type' => ConjunctionRoute::class,
+			
+			'children' => [[
+				'pattern' => '/(?<babi>\d+)/ba',
+				'action' => 'user:bo',
+			], [
+				'pattern' => '/create',
+				'action' => 'user:create',
+				'form' => [
+					'source' => 'http.post'
 				]
-			],
+			],[
+				'pattern' => '/(?<user__id>\d+)',
+				'action' => '#user.view',
+				'type' => ConjunctionRoute::class,
+				'static' => true,// если в базе данных не будет объекта с айди user__id то произойдет выброс 404
+				'rules' => [
+					'http.method' => 'get'
+				],
+				'output' => [ 'json', 'html' ],
+				'view' => [
+					'template' => 'routes/site/user',
+					'layout' => [
+						'base' => 'routes/site/user',
+						'blocks' => [
+							'avatar' => [
+								'model/user/image',
+								'scope' => [
+									'image' => '{user.profile.avatar}'
+								],
+							],
+						],
+					],
+				],
+				'location' => [
+					'title' => 'Табличка пользователя',
+					'breadcrumb' => '{user.profile.getFullname(`Family N.S.`)}',
+				],
+				'objects'   => [
+					'user' => 'UserClass'
+				],
+				
+				'children'  => [ [
+					'pattern' => '/update',
+					'action' => 'user:update',
+					'form' => [
+						'source' => 'http.post'
+					]
+				], [
+					'pattern' => '/delete',
+					'action' => 'user:delete',
+				], [
+					'location' => [
+						'breadcrumb' => 'Записи',
+						'title' => 'Записи пользователя',
+					],
+					'pattern' => '/notes',
+					'action' => 'user:note:list',
+					'type' => ConjunctionRoute::class,
+					
+					'children'  => [ [
+						
+						'pattern' => '/(?<note__id>\d+)',
+						'action' => 'user:note:read',
+						'type' => ConjunctionRoute::class,
+						'location' => [
+							'breadcrumb' => '{note.title}',
+							'title' => 'Запись пользователя',
+						],
+						'objects'   => [
+							'note' => 'NoteClass'
+						],
+						'view' => [
+							'template' => 'routes/site/user.note'
+						],
+						
+						'children' => [ [
+							'location' => [
+								'title' => 'Редактирование',
+							],
+							'pattern' => '/update',
+							'action' => 'user:note:update',
+						], [
+							'pattern' => '/delete',
+							'action' => 'user:note:delete',
+						] ],
+					], [
+						'pattern' => '/create',
+						'action' => 'user:note:create',
+					] ],
+				] ],
+			] ],
 		]
-	],
+	]
 ]);
 
 $path = $_SERVER['REQUEST_URI'];
 // встроить Работу с Объектами ORM, В маршрутизатор (CONVERTER)
 $matching = new SimpleMatching($path);
 $router->addRoute($route);
+
+$router->process($matching);
+
+__halt_compiler();
+
 $generator = $router->matchLoop($matching);
 foreach($generator as $match){
 	if($match->isReached()){
@@ -164,24 +227,29 @@ if($reached){
 	
 	$m = $matching;
 	$a = [$m->getReference()];
+	
+	$links = [$m->getElapsedPath()];
+	
 	while($m instanceof MatchingDecorator && $m = $m->getWrapped()){
 		$a[] = $m->getReference();
+		$links[] = $m->getElapsedPath();
 	}
-	
-	$last = count($a)-1;
-	$a = array_reverse($a);
 	foreach($a as $i=>&$ref){
-		if($i<$last){
-			$ref = "<i>$ref</i>";
+		if($i>=1){
+			$ref = "<a href='{$links[$i]}'><i>$ref</i></a>";
 		}else{
-			$ref = "<b style='color: cadetblue;'>$ref</b>";
+			$ref = "<a href='{$links[$i]}'><b style='color: cadetblue;'>$ref</b></a>";
 		}
 	}
 	
-	echo implode(' / ', $a);
+	echo implode(' / ', array_reverse($a));
 	
 }else{
-	echo 'Is not reached';
+	echo 'Not Reached';
+}
+function renderSubTree(ConjunctionRoute $route){
+	$link = $route->render();
+	echo '<a href="'.$link.'">'.$route->getDefaultReference().'</a>';
 }
 /**
  * из Jungle:
@@ -197,3 +265,4 @@ if($reached){
  *
  *
  */
+

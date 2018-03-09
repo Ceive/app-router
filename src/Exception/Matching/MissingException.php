@@ -15,9 +15,6 @@ use Ceive\Routing\Exception\MatchingException;
  */
 class MissingException extends MatchingException{
 	
-	
-	
-	
 }
 
 

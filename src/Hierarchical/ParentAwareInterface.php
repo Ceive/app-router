@@ -14,8 +14,15 @@ namespace Ceive\Routing\Hierarchical;
  */
 interface ParentAwareInterface{
 	
+	/**
+	 * @param ConjunctionRoute $route
+	 * @return mixed
+	 */
 	public function setParent(ConjunctionRoute $route);
 	
+	/**
+	 * @return ConjunctionRoute
+	 */
 	public function getParent();
 	
 }
