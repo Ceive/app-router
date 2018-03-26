@@ -24,11 +24,15 @@ class SimpleCRUDFactory implements FactoryMethodInterface{
 	 */
 	public function create($definition, FactoryDirector $director){
 		$definition = array_replace([
+			
 			'class'     => null,
-			'many'      => null,
+			'alias'     => 'object',
+			
+			'list'      => 'list',
 			'create'    => 'new',
 			'update'    => 'update',
 			'delete'    => 'delete',
+			
 			'children'  => [],
 			'append'    => [],
 			
@@ -53,17 +57,18 @@ class SimpleCRUDFactory implements FactoryMethodInterface{
 		$actionDelete   = $prefix . 'delete';
 		
 		
-		$pathList     = '/list';
-		$pathCreate   = '/new';
-		$pathRead     = '/(?<obj_id>\d+)';
-		$pathUpdate   = '/update';
-		$pathDelete   = '/delete';
+		$pathRead     = "/(<{$definition['alias']}__id>[1-9][0-9]*)";
+		
+		$pathList     = '/'.$definition['list'];
+		$pathCreate   = '/'.$definition['new'];
+		$pathUpdate   = '/'.$definition['update'];
+		$pathDelete   = '/'.$definition['delete'];
 		
 		
 		$route = new ConjunctionRoute($actionList, $pathList, null);
 		$route->setRouter($director->getRouter());
 		$route->setOptions(array_diff_key($definition,array_flip([
-			'class','many','create','update','delete','children','append',
+			'class','list','create','update','delete','children','append',
 			'in create','in update','in index','in delete',
 			'as create','as update','as index','as delete',
 		])));

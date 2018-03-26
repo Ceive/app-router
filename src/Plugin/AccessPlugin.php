@@ -91,7 +91,7 @@ class AccessPlugin{
 		}
 		
 		if($this->denied_matching){
-			throw new \Exception();
+			throw new \AccessDeniedRoute();
 		}
 		
 	}
