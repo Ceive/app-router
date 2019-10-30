@@ -18,11 +18,12 @@ use Ceive\Routing\Route;
  */
 class ConjunctionFactory implements FactoryMethodInterface{
 
-	/**
-	 * @param array $definition
-	 * @param FactoryDirector $context
-	 * @return ConjunctionRoute
-	 */
+    /**
+     * @param array $definition
+     * @param FactoryDirector $context
+     * @return ConjunctionRoute
+     * @throws \Ceive\Routing\RoutingException
+     */
 	public function create($definition, FactoryDirector $context){
 		
 		$p = isset($definition['pattern'])?$definition['pattern']:null;

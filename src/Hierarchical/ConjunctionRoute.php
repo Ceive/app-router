@@ -149,11 +149,12 @@ class ConjunctionRoute extends RouteAbstract implements ParentAwareInterface, Ro
 	protected function decorateRoute(Route $route){
 		return new RouteDecorator($this, $route);
 	}
-	
-	/**
-	 * @param Route $route
-	 * @return $this
-	 */
+
+    /**
+     * @param Route $route
+     * @return $this
+     * @throws RoutingException
+     */
 	public function addRoute(Route $route){
 		if($route instanceof ConjunctionRoute){
 			$route->setParent($this);
@@ -299,47 +300,53 @@ class ConjunctionRoute extends RouteAbstract implements ParentAwareInterface, Ro
 		return false;
 		
 	}
-	
-	/**
-	 * @param null $params
-	 * @return string
-	 */
+
+    /**
+     * @param null $params
+     * @return string
+     * @throws RoutingException
+     * @throws \Ceive\Routing\Exception\Rendering\InvalidParametersException
+     */
 	protected function _render($params = null){
 		return parent::render($params);
 	}
-	
-	/**
-	 * @param MatchingDecorator|Matching $matching
-	 * @return Route|null
-	 */
+
+    /**
+     * @param MatchingDecorator|Matching $matching
+     * @return Route|null
+     * @throws RoutingException
+     */
 	protected function _notFoundChild(MatchingDecorator $matching){
 		return $this->getRouter()->fireCollector('notFoundChild', [$matching, $this], true);
 		
 	}
-	
-	/**
-	 * @param SkipException $e
-	 * @param Route $route
-	 * @param MatchingDecorator|Matching $matching
-	 */
+
+    /**
+     * @param SkipException $e
+     * @param Route $route
+     * @param MatchingDecorator|Matching $matching
+     * @throws RoutingException
+     */
 	protected function _catchSkip(SkipException $e, Route $route, MatchingDecorator $matching){
 		$this->getRouter()->fireEvent('catchSkip', [$matching, $route, $this, $e]);
 	}
-	
-	/**
-	 * @param $missing
-	 * @return array|mixed
-	 */
-	protected function _catchMissing($missing){
+
+    /**
+     * @param $missing
+     * @return array|mixed
+     * @throws RoutingException
+     */
+	protected function _catchMissing(MissingException $missing){
 		return $this->getRouter()->fireCollector('catchMissing', [$missing, $this], true);
 	}
-	
-	/**
-	 * @param \Exception $e
-	 * @param Route $route
-	 * @param MatchingDecorator $matching
-	 * @return bool catched
-	 */
+
+    /**
+     * @param \Exception $e
+     * @param Route $route
+     * @param MatchingDecorator $matching
+     * @return bool catched
+     * @throws RoutingException
+     */
 	protected function _catchException(\Exception $e, Route $route, MatchingDecorator $matching){
 		$results = $this->getRouter()->fireEvent('catchException', [$matching, $route, $this, $e]);
 		return in_array(true, $results, true);

@@ -16,17 +16,50 @@ use Ceive\Routing\Simple\SimpleRoute;
  * @package Kewodoa\Routing\CRUDConjunction
  */
 class SimpleCRUDRoute extends ConjunctionRoute{
-	
-	/**
-	 * SimpleRouteAbstract constructor.
-	 * L
-	 *   C
-	 *   R
-	 *     U
-	 *     D
-	 *
-	 * @param array $config
-	 */
+
+    /**
+     * SimpleRouteAbstract constructor.
+     * L
+     *   C
+     *   R
+     *     U
+     *     D
+     *
+     * @param array $config
+     *
+     *
+     * * * * Now * * *
+     * @throws \Ceive\Routing\RoutingException
+     * @Listing
+     * GET /list (read list) ?offset ?limit
+     *
+     * @Creating
+     * GET /list/new (form)
+     * POST /list/new
+     *
+     * @Updating
+     * GET /list/[id]/update (form)
+     * POST /list/[id]/update
+     *
+     * @Deleting
+     * GET /list/[id]/delete
+     *
+     *
+     * * * * Rest FULL * * *
+     * @Listing
+     * GET /list (read list) ?offset ?limit
+     *
+     * @Creating
+     * GET /list/new  (FORM); similar to /list/new GET
+     * POST /list;  similar to /list/new POST
+     *
+     * @Updating
+     * GET /list/[id]/update (FORM);
+     * POST|PATCH /list/[id] ;
+     *
+     * @Deleting
+     * DELETE /list/[id]
+     */
 	public function __construct(array $config){
 		
 		$config = array_replace([

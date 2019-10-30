@@ -11,7 +11,7 @@ use Ceive\Routing\Exception\MatchingException;
 /**
  * @Author: Alexey Kutuzov <lexus27.khv@gmail.com>
  * Class MissingException
- * @package Ceive\Routing\Exception
+ * @package Ceive\Routing\Exception\Matching
  */
 class MissingException extends MatchingException{
 	

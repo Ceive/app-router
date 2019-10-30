@@ -11,7 +11,7 @@ use Ceive\Routing\Exception\MatchingException;
 /**
  * @Author: Alexey Kutuzov <lexus27.khv@gmail.com>
  * Class SkipException
- * @package Kewo\Matching\Exception
+ * @package Ceive\Routing\Exception\Matching
  */
 class SkipException extends MatchingException{
 	

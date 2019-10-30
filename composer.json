@@ -21,5 +21,8 @@
 	"psr-4": {
 	  "Ceive\\Routing\\Tests\\": "tests/"
 	}
+  },
+  "require": {
+    "ssilence/php-imap-client": "dev-master"
   }
 }

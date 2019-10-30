@@ -80,12 +80,13 @@ abstract class RouteAbstract implements Route{
 		}
 		return $this->router;
 	}
-	
-	/**
-	 * @param Matching $matching
-	 * @return Matching
-	 * @throws \Ceive\Routing\Exception\Matching\SkipException
-	 */
+
+    /**
+     * @param Matching $matching
+     * @return Matching
+     * @throws \Ceive\Routing\Exception\Matching\SkipException
+     * @throws RoutingException
+     */
 	public function match(Matching $matching){
 
 		$this->_doMatch($matching);
@@ -100,11 +101,12 @@ abstract class RouteAbstract implements Route{
 
 		return $matching;
 	}
-	
-	/**
-	 * @param Matching $matching
-	 * @return Matching
-	 */
+
+    /**
+     * @param Matching $matching
+     * @return Matching
+     * @throws RoutingException
+     */
 	protected function _doMatch(Matching $matching){
 		$this->getRouter()->fireEvent('beforeMatch',[$this, $matching]);
 		$path = $matching->getProposedPath();
@@ -116,11 +118,13 @@ abstract class RouteAbstract implements Route{
 		}
 		return $matching;
 	}
-	
-	/**
-	 * @param $params
-	 * @return string
-	 */
+
+    /**
+     * @param $params
+     * @return string
+     * @throws InvalidParametersException
+     * @throws RoutingException
+     */
 	public function render($params = null){
 		$resolver = $this->getRouter()->getPatternResolver();
 		$params = $this->_prepareRenderParams($params);
@@ -129,11 +133,12 @@ abstract class RouteAbstract implements Route{
 		$this->_checkRendered($result);
 		return $result;
 	}
-	
-	/**
-	 * @param $result
-	 * @throws InvalidParametersException
-	 */
+
+    /**
+     * @param $result
+     * @throws InvalidParametersException
+     * @throws RoutingException
+     */
 	protected function _checkRendered($result){
 		if($this->_matchPath($result)===false){
 			throw new InvalidParametersException('Check params please: '.implode($this->getPatternParams()));
@@ -197,9 +202,10 @@ abstract class RouteAbstract implements Route{
 		return $data;
 	}
 
-	/**
-	 * @param Matching $matching
-	 */
+    /**
+     * @param Matching $matching
+     * @throws RoutingException
+     */
 	protected function _matchingConformed(Matching $matching){
 		
 		#Example binding dsi
@@ -216,24 +222,25 @@ abstract class RouteAbstract implements Route{
 	protected function _matchingFinish(Matching $matching){
 		$this->getRouter()->fireEvent('finish', [$matching, $this]);
 	}
-	
-	/**
-	 * Подготовка массива параметров перед отрисовкой
-	 * @param $params
-	 * @return mixed
-	 * @throws RenderingException
-	 */
+
+    /**
+     * Подготовка массива параметров перед отрисовкой
+     * @param $params
+     * @return mixed
+     * @throws RoutingException
+     */
 	protected function _prepareRenderParams($params){
 		$collection = $this->getRouter()->fireEvent('prepareRenderParams', [$this, $params]);
 		$collection = array_diff($collection,[null,false,'']);
 		return call_user_func_array('array_replace', $collection);
 	}
-	
-	/**
-	 * Проверка окружения: выброс Skip в случае неудачи.
-	 *
-	 * @param Matching $matching
-	 */
+
+    /**
+     * Проверка окружения: выброс Skip в случае неудачи.
+     *
+     * @param Matching $matching
+     * @throws RoutingException
+     */
 	protected function _checkEnv(Matching $matching){
 		$this->getRouter()->fireEvent('checkEnv',[$matching, $this]);
 	}

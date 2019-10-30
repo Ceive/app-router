@@ -5,7 +5,7 @@
  * @Project: ceive.app-router
  */
 
-namespace Kewodoa\Routing\Rule;
+namespace Ceive\Routing\Rule;
 use Ceive\Routing\Matching;
 
 /**

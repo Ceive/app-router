@@ -6,7 +6,7 @@
 
 namespace Ceive\Routing\Rule;
 use Ceive\Routing\Matching;
-use Kewodoa\Routing\Rule\Rule;
+
 
 /**
  * TODO: реализовать управляющий контекст для правил RuleAbstract.
@@ -48,10 +48,11 @@ class RuleAbstract implements Rule{
 	 * @var bool
 	 */
 	public $stabilized = false;
-	
-	/**
-	 * @param Matching $matching
-	 */
+
+    /**
+     * @param Matching $matching
+     * @throws \Ceive\Routing\Exception\Matching\SkipException
+     */
 	public function match(Matching $matching){
 		$value = $this->fetchValue($matching, $this->key);
 		if(!$this->check( $value , $this->expected)){

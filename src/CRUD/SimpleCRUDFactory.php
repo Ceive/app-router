@@ -16,12 +16,13 @@ use Ceive\Routing\Simple\SimpleRoute;
 use Kewodoa\Routing\CRUDConjunction\SimpleCRUDRoute;
 
 class SimpleCRUDFactory implements FactoryMethodInterface{
-	
-	/**
-	 * @param $definition
-	 * @param FactoryDirector $director
-	 * @return mixed
-	 */
+
+    /**
+     * @param $definition
+     * @param FactoryDirector $director
+     * @return mixed
+     * @throws \Ceive\Routing\RoutingException
+     */
 	public function create($definition, FactoryDirector $director){
 		$definition = array_replace([
 			
@@ -38,12 +39,12 @@ class SimpleCRUDFactory implements FactoryMethodInterface{
 			
 			'in create' => null,
 			'in update' => null,
-			'in index' => null,
+			'in index'  => null,
 			'in delete' => null,
 			
 			'as create' => null,
 			'as update' => null,
-			'as index' => null,
+			'as index'  => null,
 			'as delete' => null,
 		],$definition);
 		
